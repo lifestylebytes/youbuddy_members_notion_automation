@@ -33,7 +33,7 @@ SHARED_DAY_DATA_SOURCE_ID=3271fc05de1e806294fa000bd4228964
 DAY_COMPLETED_PROPERTY=완료
 ```
 
-## Run
+## Local Run
 
 ```bash
 npm start
@@ -50,6 +50,23 @@ Health check:
 ```bash
 curl http://localhost:3000/healthz
 ```
+
+## Vercel Deploy
+
+This repo is ready for Vercel deployment using the `api/` functions.
+
+1. Import the GitHub repository into Vercel.
+2. Add the same environment variables from `.env` into the Vercel project settings.
+3. Deploy.
+4. Use your Vercel production URL plus `/webhooks/notion` as the Notion webhook URL.
+
+Example:
+
+```text
+https://your-project.vercel.app/webhooks/notion
+```
+
+On Vercel, `/webhooks/notion` is rewritten to the serverless function at `/api/notion-webhook`, and `/healthz` is rewritten to `/api/healthz`.
 
 ## Notion setup
 
@@ -73,3 +90,4 @@ curl http://localhost:3000/healthz
 - This service writes the visible overview checkboxes directly in Team A and Team B.
 - In the current local setup, keep both `npm start` and `cloudflared tunnel --url http://localhost:3000` running for real-time updates.
 - If either process was down, `npm run resync` recalculates the Team A / Team B overview from each member's original `4기`.
+- On Vercel, `cloudflared` is no longer needed because the webhook URL becomes your deployed Vercel URL.

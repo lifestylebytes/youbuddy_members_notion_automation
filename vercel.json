@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/webhooks/notion",
+      "destination": "/api/notion-webhook"
+    },
+    {
+      "source": "/healthz",
+      "destination": "/api/healthz"
+    }
+  ]
+}

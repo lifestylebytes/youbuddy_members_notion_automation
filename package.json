@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
-    "check": "node --check src/server.js && node --check src/config.js && node --check src/notion.js",
+    "check": "node --check src/server.js && node --check src/handler.js && node --check src/config.js && node --check src/notion.js && node --check api/notion-webhook.js && node --check api/healthz.js",
     "resync": "node scripts/resync-overview.js"
   },
   "engines": {
