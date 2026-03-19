@@ -91,12 +91,11 @@ async function shouldProcessEvent(event, sourceDataSourceId) {
     return false;
   }
 
-  if (event.type === "page.properties_updated") {
-    const updatedProperties = event.data?.updated_properties || [];
-    return updatedProperties.includes(metadata.completedPropertyId);
-  }
-
-  return event.type === "page.content_updated" || event.type === "page.created";
+  return (
+    event.type === "page.properties_updated" ||
+    event.type === "page.content_updated" ||
+    event.type === "page.created"
+  );
 }
 
 function parseDayPropertyName(title) {
@@ -152,12 +151,17 @@ async function handleNotionEvent(event) {
   }
 
   if (processedEvents.has(event.id)) {
+    console.log(`Skipping duplicate event ${event.id}`);
     return;
   }
 
   const sourcePage = await retrievePage(event.entity.id);
   const sourceDataSourceId = getSourceDataSourceId(sourcePage);
+  console.log(
+    `Received event ${event.type} for page ${event.entity.id} from source ${sourceDataSourceId || "unknown"}`
+  );
   if (!(await shouldProcessEvent(event, sourceDataSourceId))) {
+    console.log(`Skipped event ${event.id} after source metadata check`);
     return;
   }
 
