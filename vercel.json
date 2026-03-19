@@ -5,6 +5,10 @@
       "destination": "/api/notion-webhook"
     },
     {
+      "source": "/resync",
+      "destination": "/api/resync"
+    },
+    {
       "source": "/healthz",
       "destination": "/api/healthz"
     }
