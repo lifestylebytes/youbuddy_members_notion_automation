@@ -1,0 +1,27 @@
+name: Scheduled Resync
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * *"
+    - cron: "0 13 * * *"
+
+jobs:
+  resync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate secret
+        env:
+          RESYNC_SECRET: ${{ secrets.RESYNC_SECRET }}
+        run: |
+          if [ -z "$RESYNC_SECRET" ]; then
+            echo "Missing RESYNC_SECRET GitHub secret"
+            exit 1
+          fi
+
+      - name: Trigger remote resync
+        env:
+          RESYNC_SECRET: ${{ secrets.RESYNC_SECRET }}
+        run: |
+          curl --fail --show-error --silent \
+            "https://youbuddy-members-notion-automation.vercel.app/resync?secret=$RESYNC_SECRET"

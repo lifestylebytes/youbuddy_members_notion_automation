@@ -68,6 +68,24 @@ https://your-project.vercel.app/webhooks/notion
 
 On Vercel, `/webhooks/notion` is rewritten to the serverless function at `/api/notion-webhook`, and `/healthz` is rewritten to `/api/healthz`.
 
+## Automatic Resync
+
+This repo includes a GitHub Actions workflow at `.github/workflows/resync.yml` that calls the deployed resync endpoint twice a day.
+
+- 11:00 AM Korea time
+- 10:00 PM Korea time
+
+GitHub Actions schedules run in UTC, so these are configured as:
+
+- `0 2 * * *`
+- `0 13 * * *`
+
+Before the workflow can run, add this GitHub repository secret:
+
+- `RESYNC_SECRET`: the same value stored in the Vercel production environment
+
+You can also trigger the workflow manually from the GitHub Actions tab.
+
 ## Notion setup
 
 1. Create or open your Notion integration.
