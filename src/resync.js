@@ -56,7 +56,7 @@ async function queryAllRows(dataSourceId) {
 export async function getTeamMembers() {
   const members = [];
 
-  for (const dataSourceId of config.teamDataSourceIds) {
+  for (const dataSourceId of [...config.teamDataSourceIds, config.premiumDataSourceId].filter(Boolean)) {
     const rows = await queryAllRows(dataSourceId);
     for (const row of rows) {
       members.push({

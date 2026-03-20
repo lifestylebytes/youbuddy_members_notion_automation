@@ -51,6 +51,10 @@ export const config = {
   notionApiKey: process.env.NOTION_API_KEY,
   notionWebhookVerificationToken: process.env.NOTION_WEBHOOK_VERIFICATION_TOKEN || "",
   notionApiVersion: process.env.NOTION_API_VERSION || "2025-09-03",
+  premiumDatabaseId:
+    process.env.PREMIUM_DATABASE_ID || "3291fc05de1e80c78cf1e4c8fbdae994",
+  premiumDataSourceId:
+    process.env.PREMIUM_DATA_SOURCE_ID || "3291fc05-de1e-811d-b64a-000b6a856187",
   teamDatabaseIds: [
     process.env.TEAM_A_DATABASE_ID,
     process.env.TEAM_B_DATABASE_ID
@@ -62,6 +66,13 @@ export const config = {
   normalizedTeamDataSourceIds: [
     process.env.TEAM_A_DATA_SOURCE_ID,
     process.env.TEAM_B_DATA_SOURCE_ID
+  ]
+    .filter(Boolean)
+    .map(normalizeId),
+  normalizedOverviewDataSourceIds: [
+    process.env.TEAM_A_DATA_SOURCE_ID,
+    process.env.TEAM_B_DATA_SOURCE_ID,
+    process.env.PREMIUM_DATA_SOURCE_ID || "3291fc05-de1e-811d-b64a-000b6a856187"
   ]
     .filter(Boolean)
     .map(normalizeId),

@@ -57,7 +57,7 @@ async function getDayDataSourceMetadata(dataSourceId) {
         const relationPropertyNames = properties
           .filter((property) => property?.type === "relation")
           .filter((property) =>
-            config.normalizedTeamDataSourceIds.includes(
+            config.normalizedOverviewDataSourceIds.includes(
               config.normalizeId(property.relation?.data_source_id)
             )
           )
@@ -81,7 +81,7 @@ async function shouldProcessEvent(event, sourceDataSourceId) {
 
   if (
     !sourceDataSourceId ||
-    config.normalizedTeamDataSourceIds.includes(config.normalizeId(sourceDataSourceId))
+    config.normalizedOverviewDataSourceIds.includes(config.normalizeId(sourceDataSourceId))
   ) {
     return false;
   }
