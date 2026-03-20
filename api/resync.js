@@ -1,5 +1,6 @@
 import { resyncOverview } from "../src/resync.js";
 import { updateDashboardWidget } from "../src/dashboard.js";
+import { updatePremiumDashboardWidget } from "../src/premium-dashboard.js";
 
 function isAuthorized(request) {
   const expected = process.env.RESYNC_SECRET || "";
@@ -28,11 +29,13 @@ export default async function handler(request, response) {
 
     const overviewResults = await resyncOverview();
     const widgetResult = await updateDashboardWidget();
+    const premiumWidgetResult = await updatePremiumDashboardWidget();
 
     return response.status(200).json({
       ok: true,
       overviewResults,
-      widgetResult
+      widgetResult,
+      premiumWidgetResult
     });
   } catch (error) {
     console.error(error);
