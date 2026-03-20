@@ -122,6 +122,8 @@ async function syncDayPage(pageId) {
   const title = extractPlainTextFromProperty(sourcePage.properties?.["이름"]);
   const dayPropertyName = parseDayPropertyName(title);
 
+  console.log(`syncDayPage start page=${pageId} title="${title}" parsedDay=${dayPropertyName || "none"}`);
+
   if (!dayPropertyName) {
     console.warn(`Unable to parse a Day number from "${title}" (${pageId})`);
     return;
@@ -130,9 +132,15 @@ async function syncDayPage(pageId) {
   const completed = extractCheckboxValue(sourcePage.properties?.[config.dayCompletedProperty]);
   const sourceDataSourceId = getSourceDataSourceId(sourcePage);
   const metadata = await getDayDataSourceMetadata(sourceDataSourceId);
-  const memberPageIds = metadata.relationPropertyNames.flatMap((propertyName) =>
-    extractRelationIds(sourcePage.properties?.[propertyName])
+  console.log(
+    `syncDayPage metadata source=${sourceDataSourceId} relationProps=${metadata.relationPropertyNames.join(","
+    )} completed=${completed}`
   );
+  const memberPageIds = metadata.relationPropertyNames.flatMap((propertyName) => {
+    const ids = extractRelationIds(sourcePage.properties?.[propertyName]);
+    console.log(`relation property ${propertyName} -> ${ids.join(",") || "none"}`);
+    return ids;
+  });
 
   if (memberPageIds.length === 0) {
     console.warn(`No related Team member row found for "${title}" (${pageId})`);
@@ -140,6 +148,7 @@ async function syncDayPage(pageId) {
   }
 
   for (const memberPageId of memberPageIds) {
+    console.log(`Updating member ${memberPageId} property ${dayPropertyName}=${completed}`);
     await updatePageCheckbox(memberPageId, dayPropertyName, completed);
     console.log(`Updated ${memberPageId}: ${dayPropertyName}=${completed} from "${title}"`);
   }
