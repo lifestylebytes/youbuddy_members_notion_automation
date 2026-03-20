@@ -8,6 +8,8 @@ import {
   retrieveDataSource,
   updatePageCheckbox
 } from "./notion.js";
+import { updateDashboardWidget } from "./dashboard.js";
+import { updatePremiumDashboardWidget } from "./premium-dashboard.js";
 
 const processedEvents = new Map();
 let runtimeVerificationToken = config.notionWebhookVerificationToken;
@@ -176,6 +178,9 @@ async function handleNotionEvent(event) {
 
   rememberEvent(event.id);
   await syncDayPage(event.entity.id);
+  const widgetResult = await updateDashboardWidget();
+  const premiumWidgetResult = await updatePremiumDashboardWidget();
+  console.log(`Dashboard widgets updated basic=${JSON.stringify(widgetResult)} premium=${JSON.stringify(premiumWidgetResult)}`);
 }
 
 export async function handleRequest({ method, pathname, headers, rawBody }) {
