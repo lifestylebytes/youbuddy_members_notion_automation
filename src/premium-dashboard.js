@@ -1,9 +1,7 @@
 import { config } from "./config.js";
-import { createDatabaseInPage, createPageInDataSource, listBlockChildren } from "./notion.js";
 
-const PREMIUM_DASHBOARD_PAGE_ID = "3291fc05-de1e-804b-ab00-f371ca79badf";
-const PREMIUM_WIDGET_TITLE = "4기 프리미엄 대시보드 위젯 자동화";
-const PREMIUM_WIDGET_ROW_NAME = "Premium 오늘 현황";
+const PREMIUM_DASHBOARD_DATA_SOURCE_ID = "3291fc05-de1e-81d7-a1cc-000bbfadc3b3";
+const PREMIUM_DASHBOARD_ROW_ID = "3291fc05-de1e-8115-9068-c81b4b4ff5ab";
 const START_DATE_KST = "2026-03-23";
 const TOTAL_DAYS = 20;
 
@@ -71,75 +69,11 @@ async function queryAllRows(dataSourceId) {
   return rows;
 }
 
-async function findOrCreatePremiumWidgetDataSource() {
-  const children = await listBlockChildren(PREMIUM_DASHBOARD_PAGE_ID);
-  const existing = children.results.find(
-    (block) => block.type === "child_database" && block.child_database?.title === PREMIUM_WIDGET_TITLE
-  );
-
-  if (existing) {
-    const database = await notionRequest(`/databases/${existing.id}`);
-    const dataSourceId = database.data_sources?.[0]?.id;
-    if (!dataSourceId) {
-      throw new Error(`Existing Premium widget database has no data source: ${existing.id}`);
-    }
-    return { databaseId: existing.id, dataSourceId };
-  }
-
-  const database = await createDatabaseInPage(PREMIUM_DASHBOARD_PAGE_ID, PREMIUM_WIDGET_TITLE, {
-    "이름": { title: {} },
-    "오늘 N일차": { number: {} },
-    "오늘 인증 인원": { number: {} },
-    "전체 인원": { number: {} },
-    "오늘 인증율": { number: {} },
-    "진행표시": { rich_text: {} },
-    "날짜": { date: {} }
-  });
-
-  const dataSourceId = database.data_sources?.[0]?.id;
-  if (!dataSourceId) {
-    throw new Error("Failed to create Premium widget data source");
-  }
-
-  return { databaseId: database.id, dataSourceId };
-}
-
-async function findOrCreatePremiumWidgetRow(dataSourceId) {
-  const rows = await queryAllRows(dataSourceId);
-  if (rows[0]?.id) {
-    return rows[0].id;
-  }
-
-  const row = await createPageInDataSource(dataSourceId, {
-    "이름": {
-      title: [
-        {
-          type: "text",
-          text: {
-            content: PREMIUM_WIDGET_ROW_NAME
-          }
-        }
-      ]
-    },
-    "오늘 N일차": { number: 0 },
-    "오늘 인증 인원": { number: 0 },
-    "전체 인원": { number: 0 },
-    "오늘 인증율": { number: 0 },
-    "진행표시": { rich_text: [] },
-    "날짜": { date: null }
-  });
-
-  return row.id;
-}
-
 async function getPremiumMemberRows() {
   return queryAllRows(config.premiumDataSourceId);
 }
 
 export async function updatePremiumDashboardWidget() {
-  const { databaseId, dataSourceId } = await findOrCreatePremiumWidgetDataSource();
-  const rowId = await findOrCreatePremiumWidgetRow(dataSourceId);
-
   const todayKst = formatKstDate();
   const dayIndex = getDayIndex(todayKst);
   const targetProperty = dayIndex > 0 ? `Day${dayIndex}` : null;
@@ -151,14 +85,14 @@ export async function updatePremiumDashboardWidget() {
   const rate = totalPeople > 0 ? Math.round((participantCount / totalPeople) * 1000) / 10 : 0;
   const progressText = dayIndex > 0 ? `${dayIndex}/${TOTAL_DAYS}일째` : `시작 전 (0/${TOTAL_DAYS})`;
 
-  await notionRequest(`/pages/${rowId}`, {
+  await notionRequest(`/pages/${PREMIUM_DASHBOARD_ROW_ID}`, {
     method: "PATCH",
     body: {
       properties: {
         "오늘 N일차": { number: dayIndex },
         "오늘 인증 인원": { number: participantCount },
         "전체 인원": { number: totalPeople },
-        "오늘 인증율": { number: rate },
+        "오늘 인증률": { number: rate },
         "진행표시": {
           rich_text: [
             {
@@ -177,9 +111,8 @@ export async function updatePremiumDashboardWidget() {
   });
 
   return {
-    databaseId,
-    dataSourceId,
-    rowId,
+    dataSourceId: PREMIUM_DASHBOARD_DATA_SOURCE_ID,
+    rowId: PREMIUM_DASHBOARD_ROW_ID,
     todayKst,
     dayIndex,
     participantCount,
