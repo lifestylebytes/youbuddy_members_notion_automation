@@ -4,6 +4,9 @@ import {
   extractCheckboxValue,
   extractPlainTextFromProperty,
   extractRelationIds,
+  listBlockChildren,
+  queryAllPagesInDataSource,
+  retrieveDatabase,
   retrievePage,
   retrieveDataSource,
   updatePageCheckbox
@@ -14,6 +17,7 @@ import { updatePremiumDashboardWidget } from "./premium-dashboard.js";
 const processedEvents = new Map();
 let runtimeVerificationToken = config.notionWebhookVerificationToken;
 const dayDataSourceMetadataCache = new Map();
+const overviewMemberByDaySourceCache = new Map();
 
 function rememberEvent(eventId) {
   const now = Date.now();
@@ -74,6 +78,52 @@ async function getDayDataSourceMetadata(dataSourceId) {
   }
 
   return dayDataSourceMetadataCache.get(dataSourceId);
+}
+
+async function getOriginalFourGiDataSourceId(memberPageId) {
+  const children = await listBlockChildren(memberPageId);
+  const original = children.results.find(
+    (block) => block.type === "child_database" && block.child_database?.title === "4기"
+  );
+
+  if (!original) {
+    return null;
+  }
+
+  const database = await retrieveDatabase(original.id);
+  return database.data_sources?.[0]?.id || null;
+}
+
+async function findMemberPageIdsBySourceDataSourceId(sourceDataSourceId) {
+  const normalizedSourceId = config.normalizeId(sourceDataSourceId);
+  if (!normalizedSourceId) {
+    return [];
+  }
+
+  if (!overviewMemberByDaySourceCache.has(normalizedSourceId)) {
+    overviewMemberByDaySourceCache.set(
+      normalizedSourceId,
+      (async () => {
+        const matches = [];
+        const overviewDataSourceIds = [...config.teamDataSourceIds, config.premiumDataSourceId].filter(Boolean);
+
+        for (const overviewDataSourceId of overviewDataSourceIds) {
+          const memberPages = await queryAllPagesInDataSource(overviewDataSourceId, ["이름"]);
+
+          for (const memberPage of memberPages) {
+            const originalDataSourceId = await getOriginalFourGiDataSourceId(memberPage.id);
+            if (config.normalizeId(originalDataSourceId) === normalizedSourceId) {
+              matches.push(memberPage.id);
+            }
+          }
+        }
+
+        return matches;
+      })()
+    );
+  }
+
+  return overviewMemberByDaySourceCache.get(normalizedSourceId);
 }
 
 async function shouldProcessEvent(event, sourceDataSourceId) {
@@ -144,12 +194,21 @@ async function syncDayPage(pageId) {
     return ids;
   });
 
-  if (memberPageIds.length === 0) {
+  const resolvedMemberPageIds =
+    memberPageIds.length > 0 ? memberPageIds : await findMemberPageIdsBySourceDataSourceId(sourceDataSourceId);
+
+  if (memberPageIds.length === 0 && resolvedMemberPageIds.length > 0) {
+    console.log(
+      `source data source fallback resolved members ${resolvedMemberPageIds.join(",")} for source ${sourceDataSourceId}`
+    );
+  }
+
+  if (resolvedMemberPageIds.length === 0) {
     console.warn(`No related Team member row found for "${title}" (${pageId})`);
     return;
   }
 
-  for (const memberPageId of memberPageIds) {
+  for (const memberPageId of resolvedMemberPageIds) {
     console.log(`Updating member ${memberPageId} property ${dayPropertyName}=${completed}`);
     await updatePageCheckbox(memberPageId, dayPropertyName, completed);
     console.log(`Updated ${memberPageId}: ${dayPropertyName}=${completed} from "${title}"`);

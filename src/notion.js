@@ -42,6 +42,10 @@ export async function retrieveDataSource(dataSourceId) {
   return notionRequest(`/data_sources/${dataSourceId}`);
 }
 
+export async function retrieveDatabase(databaseId) {
+  return notionRequest(`/databases/${databaseId}`);
+}
+
 export async function listBlockChildren(blockId, startCursor) {
   return notionRequest(`/blocks/${blockId}/children`, {
     query: {
