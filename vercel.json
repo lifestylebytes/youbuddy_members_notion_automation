@@ -9,6 +9,10 @@
       "destination": "/api/resync"
     },
     {
+      "source": "/refresh-dashboard",
+      "destination": "/api/refresh-dashboard"
+    },
+    {
       "source": "/healthz",
       "destination": "/api/healthz"
     }

@@ -51,6 +51,12 @@ Health check:
 curl http://localhost:3000/healthz
 ```
 
+For a faster deployed dashboard-only refresh that skips the heavier overview resync, call:
+
+```bash
+curl -X POST "https://your-project.vercel.app/refresh-dashboard?secret=YOUR_RESYNC_SECRET"
+```
+
 ## Vercel Deploy
 
 This repo is ready for Vercel deployment using the `api/` functions.
@@ -67,18 +73,15 @@ https://your-project.vercel.app/webhooks/notion
 ```
 
 On Vercel, `/webhooks/notion` is rewritten to the serverless function at `/api/notion-webhook`, and `/healthz` is rewritten to `/api/healthz`.
+`/refresh-dashboard` is rewritten to `/api/refresh-dashboard`.
 
 ## Automatic Resync
 
-This repo includes a GitHub Actions workflow at `.github/workflows/resync.yml` that calls the deployed resync endpoint twice a day.
+This repo includes a GitHub Actions workflow at `.github/workflows/resync.yml` that calls the deployed resync endpoint every day at 12:05 AM Korea time.
 
-- 11:00 AM Korea time
-- 10:00 PM Korea time
+GitHub Actions schedules run in UTC, so this is configured as:
 
-GitHub Actions schedules run in UTC, so these are configured as:
-
-- `0 2 * * *`
-- `0 13 * * *`
+- `5 15 * * *`
 
 Before the workflow can run, add this GitHub repository secret:
 

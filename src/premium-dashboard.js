@@ -1,4 +1,11 @@
 import { config } from "./config.js";
+import { saveRateSnapshot } from "./history-store.js";
+import {
+  buildRateHistory,
+  buildRateHistoryNotice,
+  calculateRate,
+  countCheckedMembers
+} from "./rate-summary.js";
 
 const PREMIUM_DASHBOARD_DATA_SOURCE_ID = "3291fc05-de1e-81d7-a1cc-000bbfadc3b3";
 const PREMIUM_DASHBOARD_ROW_ID = "3291fc05-de1e-8115-9068-c81b4b4ff5ab";
@@ -79,10 +86,10 @@ export async function updatePremiumDashboardWidget() {
   const targetProperty = dayIndex > 0 ? `Day${dayIndex}` : null;
   const members = await getPremiumMemberRows();
   const totalPeople = members.length;
-  const participantCount = targetProperty
-    ? members.filter((member) => member.properties?.[targetProperty]?.checkbox === true).length
-    : 0;
-  const rate = totalPeople > 0 ? Math.round((participantCount / totalPeople) * 1000) / 10 : 0;
+  const participantCount = targetProperty ? countCheckedMembers(members, targetProperty) : 0;
+  const currentRate = calculateRate(participantCount, totalPeople);
+  const rateHistory = buildRateHistory(dayIndex, TOTAL_DAYS, members, totalPeople);
+  const rateHistoryNotice = buildRateHistoryNotice(dayIndex, TOTAL_DAYS, rateHistory, totalPeople);
   const progressText = dayIndex > 0 ? `${dayIndex}/${TOTAL_DAYS}일째` : `시작 전 (0/${TOTAL_DAYS})`;
 
   await notionRequest(`/pages/${PREMIUM_DASHBOARD_ROW_ID}`, {
@@ -92,12 +99,21 @@ export async function updatePremiumDashboardWidget() {
         "오늘 N일차": { number: dayIndex },
         "오늘 인증 인원": { number: participantCount },
         "전체 인원": { number: totalPeople },
-        "오늘 인증률": { number: rate },
         "진행표시": {
           rich_text: [
             {
               type: "text",
               text: { content: progressText }
+            }
+          ]
+        },
+        "공지": {
+          rich_text: [
+            {
+              type: "text",
+              text: {
+                content: rateHistoryNotice
+              }
             }
           ]
         },
@@ -110,6 +126,15 @@ export async function updatePremiumDashboardWidget() {
     }
   });
 
+  await saveRateSnapshot({
+    segment: "프리미엄",
+    date: todayKst,
+    dayIndex,
+    participantCount,
+    totalPeople,
+    rate: currentRate
+  });
+
   return {
     dataSourceId: PREMIUM_DASHBOARD_DATA_SOURCE_ID,
     rowId: PREMIUM_DASHBOARD_ROW_ID,
@@ -117,7 +142,8 @@ export async function updatePremiumDashboardWidget() {
     dayIndex,
     participantCount,
     totalPeople,
-    rate,
+    currentRate,
+    rateHistory,
     progressText
   };
 }

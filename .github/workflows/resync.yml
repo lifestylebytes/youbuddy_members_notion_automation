@@ -1,7 +1,9 @@
-# disabled: manual resync only
 name: Scheduled Resync
 
 on:
+  schedule:
+    # 00:05 KST every day
+    - cron: "5 15 * * *"
   workflow_dispatch:
 
 jobs:

@@ -1,10 +1,15 @@
 import { config } from "./config.js";
+import { saveRateSnapshot } from "./history-store.js";
+import {
+  buildRateHistory,
+  buildRateHistoryNotice,
+  calculateRate,
+  countCheckedMembers
+} from "./rate-summary.js";
 
 const DASHBOARD_ROW_ID = "678810d9-7734-4ff7-a21e-dabef366c7fb";
 const START_DATE_KST = "2026-03-23";
 const TOTAL_DAYS = 20;
-const TOTAL_PEOPLE = 20;
-
 async function notionRequest(path, { method = "GET", body } = {}) {
   const response = await fetch(`https://api.notion.com/v1${path}`, {
     method,
@@ -88,9 +93,11 @@ export async function updateDashboardWidget() {
   const targetProperty = dayIndex > 0 ? `Day${dayIndex}` : null;
 
   const members = await getTeamMemberRows();
-  const participantCount = targetProperty
-    ? members.filter((member) => member.properties?.[targetProperty]?.checkbox === true).length
-    : 0;
+  const totalPeople = members.length;
+  const participantCount = targetProperty ? countCheckedMembers(members, targetProperty) : 0;
+  const currentRate = calculateRate(participantCount, totalPeople);
+  const rateHistory = buildRateHistory(dayIndex, TOTAL_DAYS, members, totalPeople);
+  const rateHistoryNotice = buildRateHistoryNotice(dayIndex, TOTAL_DAYS, rateHistory, totalPeople);
   const progressText = dayIndex > 0 ? `${dayIndex}/${TOTAL_DAYS}일째` : `시작 전 (0/${TOTAL_DAYS})`;
 
   await notionRequest(`/pages/${DASHBOARD_ROW_ID}`, {
@@ -104,7 +111,7 @@ export async function updateDashboardWidget() {
           number: participantCount
         },
         "전체 인원": {
-          number: TOTAL_PEOPLE
+          number: totalPeople
         },
         "진행표시": {
           rich_text: [
@@ -112,6 +119,16 @@ export async function updateDashboardWidget() {
               type: "text",
               text: {
                 content: progressText
+              }
+            }
+          ]
+        },
+        "공지": {
+          rich_text: [
+            {
+              type: "text",
+              text: {
+                content: rateHistoryNotice
               }
             }
           ]
@@ -125,10 +142,22 @@ export async function updateDashboardWidget() {
     }
   });
 
+  await saveRateSnapshot({
+    segment: "베이직",
+    date: todayKst,
+    dayIndex,
+    participantCount,
+    totalPeople,
+    rate: currentRate
+  });
+
   return {
     todayKst,
     dayIndex,
     participantCount,
+    totalPeople,
+    currentRate,
+    rateHistory,
     progressText
   };
 }

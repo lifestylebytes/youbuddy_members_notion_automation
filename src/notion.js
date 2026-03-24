@@ -105,6 +105,15 @@ export async function updatePageCheckbox(pageId, propertyName, checked) {
   });
 }
 
+export async function updatePageProperties(pageId, properties) {
+  return notionRequest(`/pages/${pageId}`, {
+    method: "PATCH",
+    body: {
+      properties
+    }
+  });
+}
+
 export async function queryAllPagesInDataSource(dataSourceId, filterProperties = []) {
   const results = [];
   let nextCursor;
