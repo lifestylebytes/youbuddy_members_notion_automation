@@ -1,4 +1,5 @@
 import { updateDashboardWidget } from "../src/dashboard.js";
+import { renderRateComparisonSection } from "../src/history-store.js";
 import { updatePremiumDashboardWidget } from "../src/premium-dashboard.js";
 
 function isAuthorized(request) {
@@ -30,11 +31,13 @@ export default async function handler(request, response) {
       updateDashboardWidget(),
       updatePremiumDashboardWidget()
     ]);
+    const historyRenderResult = await renderRateComparisonSection();
 
     return response.status(200).json({
       ok: true,
       widgetResult,
-      premiumWidgetResult
+      premiumWidgetResult,
+      historyRenderResult
     });
   } catch (error) {
     console.error(error);

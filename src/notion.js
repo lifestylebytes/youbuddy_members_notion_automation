@@ -42,6 +42,15 @@ export async function retrieveDataSource(dataSourceId) {
   return notionRequest(`/data_sources/${dataSourceId}`);
 }
 
+export async function updateDataSource(dataSourceId, properties) {
+  return notionRequest(`/data_sources/${dataSourceId}`, {
+    method: "PATCH",
+    body: {
+      properties
+    }
+  });
+}
+
 export async function retrieveDatabase(databaseId) {
   return notionRequest(`/databases/${databaseId}`);
 }
@@ -52,6 +61,21 @@ export async function listBlockChildren(blockId, startCursor) {
       page_size: 100,
       start_cursor: startCursor
     }
+  });
+}
+
+export async function appendBlockChildren(blockId, children) {
+  return notionRequest(`/blocks/${blockId}/children`, {
+    method: "PATCH",
+    body: {
+      children
+    }
+  });
+}
+
+export async function deleteBlock(blockId) {
+  return notionRequest(`/blocks/${blockId}`, {
+    method: "DELETE"
   });
 }
 

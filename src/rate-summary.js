@@ -2,6 +2,19 @@ export function countCheckedMembers(members, propertyName) {
   return members.filter((member) => member.properties?.[propertyName]?.checkbox === true).length;
 }
 
+export function isCountedMember(member) {
+  const name = (member.properties?.["이름"]?.title || [])
+    .map((item) => item.plain_text || "")
+    .join("")
+    .trim();
+
+  return !/\(\*\)\s*$/.test(name);
+}
+
+export function filterCountedMembers(members) {
+  return members.filter(isCountedMember);
+}
+
 export function calculateRate(checkedCount, totalPeople) {
   if (totalPeople <= 0) {
     return 0;

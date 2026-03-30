@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { config } from "./config.js";
+import { renderRateComparisonSection } from "./history-store.js";
 import {
   extractCheckboxValue,
   extractPlainTextFromProperty,
@@ -239,7 +240,12 @@ async function handleNotionEvent(event) {
   await syncDayPage(event.entity.id);
   const widgetResult = await updateDashboardWidget();
   const premiumWidgetResult = await updatePremiumDashboardWidget();
-  console.log(`Dashboard widgets updated basic=${JSON.stringify(widgetResult)} premium=${JSON.stringify(premiumWidgetResult)}`);
+  const historyRenderResult = await renderRateComparisonSection();
+  console.log(
+    `Dashboard widgets updated basic=${JSON.stringify(widgetResult)} premium=${JSON.stringify(
+      premiumWidgetResult
+    )} history=${JSON.stringify(historyRenderResult)}`
+  );
 }
 
 export async function handleRequest({ method, pathname, headers, rawBody }) {

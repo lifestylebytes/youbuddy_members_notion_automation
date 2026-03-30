@@ -51,6 +51,8 @@ export const config = {
   notionApiKey: process.env.NOTION_API_KEY,
   notionWebhookVerificationToken: process.env.NOTION_WEBHOOK_VERIFICATION_TOKEN || "",
   notionApiVersion: process.env.NOTION_API_VERSION || "2025-09-03",
+  programStartDateKst: process.env.PROGRAM_START_DATE_KST || "2026-03-23",
+  programTotalDays: Number(process.env.PROGRAM_TOTAL_DAYS || 20),
   premiumDatabaseId:
     process.env.PREMIUM_DATABASE_ID || "3291fc05de1e80c78cf1e4c8fbdae994",
   premiumDataSourceId:
