@@ -17,6 +17,9 @@ const HISTORY_PAGE_ID = "32c1fc05-de1e-801b-b090-e43e9e05cf88";
 const HISTORY_DATABASE_TITLE = "지난 인증률";
 const GENERATED_BLOCK_PREFIX = "[auto-rate-comparison]";
 const MAX_BLOCK_TEXT_LENGTH = 1800;
+let historyDataSourceIdPromise;
+let historyRatePropertyNamePromise;
+let historyPagesCachePromise;
 
 async function listAllChildren(pageId) {
   const children = [];
@@ -40,6 +43,11 @@ function extractBlockPlainText(block) {
 }
 
 async function ensureHistoryDataSourceId() {
+  if (historyDataSourceIdPromise) {
+    return historyDataSourceIdPromise;
+  }
+
+  historyDataSourceIdPromise = (async () => {
   const existingBlocks = await listAllChildren(HISTORY_PAGE_ID);
   const existingDb = existingBlocks.find(
     (block) => block.type === "child_database" && block.child_database?.title === HISTORY_DATABASE_TITLE
@@ -74,6 +82,9 @@ async function ensureHistoryDataSourceId() {
   }
 
   return dataSourceId;
+  })();
+
+  return historyDataSourceIdPromise;
 }
 
 function buildSnapshotTitle(segment, dayIndex, date) {
@@ -81,6 +92,11 @@ function buildSnapshotTitle(segment, dayIndex, date) {
 }
 
 async function resolveRatePropertyName(dataSourceId) {
+  if (historyRatePropertyNamePromise) {
+    return historyRatePropertyNamePromise;
+  }
+
+  historyRatePropertyNamePromise = (async () => {
   const dataSource = await retrieveDataSource(dataSourceId);
   const properties = Object.values(dataSource.properties || {});
   const correctProperty = properties.find((property) => property.name === "인증률");
@@ -103,6 +119,38 @@ async function resolveRatePropertyName(dataSourceId) {
   } catch {
     return "인증율";
   }
+  })();
+
+  return historyRatePropertyNamePromise;
+}
+
+async function loadHistoryPages(dataSourceId) {
+  if (!historyPagesCachePromise) {
+    historyPagesCachePromise = queryAllPagesInDataSource(dataSourceId);
+  }
+
+  return historyPagesCachePromise;
+}
+
+function indexHistoryPages(pages) {
+  return new Map(
+    pages.map((page) => [extractPlainTextFromProperty(page.properties?.["이름"]), page]).filter(([name]) => Boolean(name))
+  );
+}
+
+async function getHistoryStoreContext() {
+  const dataSourceId = await ensureHistoryDataSourceId();
+  const [ratePropertyName, pages] = await Promise.all([
+    resolveRatePropertyName(dataSourceId),
+    loadHistoryPages(dataSourceId)
+  ]);
+
+  return {
+    dataSourceId,
+    ratePropertyName,
+    pages,
+    pageIndex: indexHistoryPages(pages)
+  };
 }
 
 function buildSnapshotProperties(snapshot, ratePropertyName) {
@@ -265,8 +313,7 @@ async function deleteGeneratedComparisonBlocks() {
 }
 
 export async function renderRateComparisonSection() {
-  const dataSourceId = await ensureHistoryDataSourceId();
-  const pages = await queryAllPagesInDataSource(dataSourceId);
+  const { pages } = await getHistoryStoreContext();
   const rows = pages.map(toRateRow).filter(Boolean).filter(isCurrentScheduleRow);
   const lines = buildComparisonLines(rows);
   const blocks = buildComparisonBlocks(lines);
@@ -282,17 +329,17 @@ export async function renderRateComparisonSection() {
 }
 
 export async function saveRateSnapshot(snapshot) {
-  const dataSourceId = await ensureHistoryDataSourceId();
-  const ratePropertyName = await resolveRatePropertyName(dataSourceId);
-  const pages = await queryAllPagesInDataSource(dataSourceId);
-  const existingPage = pages.find((page) => {
-    const name = extractPlainTextFromProperty(page.properties?.["이름"]);
-    return name === buildSnapshotTitle(snapshot.segment, snapshot.dayIndex, snapshot.date);
-  });
+  const { dataSourceId, ratePropertyName, pages, pageIndex } = await getHistoryStoreContext();
+  const snapshotTitle = buildSnapshotTitle(snapshot.segment, snapshot.dayIndex, snapshot.date);
+  const existingPage = pageIndex.get(snapshotTitle);
+  const properties = buildSnapshotProperties(snapshot, ratePropertyName);
 
   if (existingPage) {
-    return updatePageProperties(existingPage.id, buildSnapshotProperties(snapshot, ratePropertyName));
+    return updatePageProperties(existingPage.id, properties);
   }
 
-  return createPageInDataSource(dataSourceId, buildSnapshotProperties(snapshot, ratePropertyName));
+  const createdPage = await createPageInDataSource(dataSourceId, properties);
+  pages.push(createdPage);
+  pageIndex.set(snapshotTitle, createdPage);
+  return createdPage;
 }

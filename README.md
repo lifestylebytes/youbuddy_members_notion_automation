@@ -75,9 +75,9 @@ https://your-project.vercel.app/webhooks/notion
 On Vercel, `/webhooks/notion` is rewritten to the serverless function at `/api/notion-webhook`, and `/healthz` is rewritten to `/api/healthz`.
 `/refresh-dashboard` is rewritten to `/api/refresh-dashboard`.
 
-## Automatic Resync
+## Automatic Dashboard Refresh
 
-This repo includes a GitHub Actions workflow at `.github/workflows/resync.yml` that calls the deployed resync endpoint every day at 12:05 AM Korea time.
+This repo includes a GitHub Actions workflow at `.github/workflows/resync.yml` that calls the deployed dashboard refresh endpoint every day at 12:05 AM Korea time.
 
 GitHub Actions schedules run in UTC, so this is configured as:
 
@@ -87,7 +87,9 @@ Before the workflow can run, add this GitHub repository secret:
 
 - `RESYNC_SECRET`: the same value stored in the Vercel production environment
 
-You can also trigger the workflow manually from the GitHub Actions tab.
+The scheduled workflow uses `/refresh-dashboard` because it is much lighter than the full `/resync` repair path and is better suited for daily day-index updates.
+
+Run `/resync` manually only when you need to rebuild the Team A / Team B overview from source data after webhook downtime or data drift.
 
 ## Notion setup
 
